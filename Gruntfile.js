@@ -10,6 +10,7 @@ module.exports = function(grunt) {
 
 	const srcDir = 'src';
 	const buildDir = 'build';
+	const buildDirSafariExt = `${buildDir}.safariextension`;
 	const packageName = 'web-scrobbler.zip';
 	const manifestFile = 'src/manifest.json';
 
@@ -35,6 +36,7 @@ module.exports = function(grunt) {
 		// Tests
 		'tests/**/*.js'
 	];
+
 	const jsonFiles = ['*.json', '.stylelintrc'];
 	const htmlFiles = [`${srcDir}/options/*.html`, `${srcDir}/popups/*.html`];
 	const cssFiles = [`${srcDir}options/*.css`, `${srcDir}/popups/*.css`];
@@ -51,12 +53,18 @@ module.exports = function(grunt) {
 		 */
 
 		clean: {
-			build: buildDir,
+			build: [buildDir, buildDirSafariExt],
 			package: [packageName],
 			chrome: [
 				`${buildDir}/icons/icon128_firefox.png`,
-				`${buildDir}/icons/icon48_firefox.png`
+				`${buildDir}/icons/icon48_firefox.png`,
 			],
+			firefox: [
+
+			],
+			safari: [
+
+			]
 		},
 		copy: {
 			source_files: {
@@ -118,6 +126,16 @@ module.exports = function(grunt) {
 						CHROME: true,
 					}
 				}
+			},
+			safari: {
+				src: `${buildDir}/**/*.js`,
+				expand: true,
+				options: {
+					inline: true,
+					context: {
+						SAFARI: true,
+					}
+				}
 			}
 		},
 		rename: {
@@ -128,6 +146,12 @@ module.exports = function(grunt) {
 				}, {
 					src: `${buildDir}/icons/icon48_firefox.png`,
 					dest: `${buildDir}/icons/icon48.png`
+				}]
+			},
+			safari: {
+				files: [{
+					src: buildDir,
+					dest: buildDirSafariExt
 				}]
 			}
 		},
@@ -147,6 +171,15 @@ module.exports = function(grunt) {
 					'options_page': undefined,
 				}
 			},
+			safari: {
+				src: `${buildDirSafariExt}/manifest.json`,
+				changes: {
+					'applications.gecko.id': amoExtensionId,
+					'applications.gecko.strict_min_version': '53.0',
+
+					'options_page': undefined,
+				}
+			}
 		},
 
 		/**
@@ -174,6 +207,12 @@ module.exports = function(grunt) {
 			id: amoExtensionId,
 			version: '<%= manifest.version %>',
 			src: packageName,
+		},
+		/**
+		 * TODO: Publish in Apple's Safari Extensions repository?
+		 */
+		ase_upload: {
+
 		},
 		webstore_upload: {
 			accounts: {
@@ -267,6 +306,9 @@ module.exports = function(grunt) {
 			case 'firefox':
 				grunt.task.run('rename:firefox');
 				break;
+			case 'safari':
+				grunt.task.run('rename:safari');
+				break;
 		}
 	});
 
@@ -279,9 +321,11 @@ module.exports = function(grunt) {
 		assertBrowserIsSupported(browser);
 
 		grunt.task.run([
+			'clean',
 			'copy', `preprocess:${browser}`,
 			`icons:${browser}`, 'imagemin',
-			`replace_json:${browser}`
+			`replace_json:${browser}`,
+			// 'exec:add_safariextension'
 		]);
 	});
 
@@ -332,6 +376,9 @@ module.exports = function(grunt) {
 			case 'firefox':
 				grunt.task.run(['build:firefox', 'amo_upload', 'clean:package']);
 				break;
+			case 'safari':
+				grunt.task.run(['build:safari', 'ase_upload', 'clean:package']);
+				break;
 		}
 	});
 
@@ -369,7 +416,7 @@ module.exports = function(grunt) {
 
 		grunt.task.run(`release:${releaseType}`);
 
-		grunt.task.run(['publish:chrome', 'publish:firefox']);
+		grunt.task.run(['publish:chrome', 'publish:firefox', 'publish:safari']);
 	});
 
 	/**
@@ -424,7 +471,7 @@ module.exports = function(grunt) {
 	 * @param  {String}  browser Browser name
 	 */
 	function assertBrowserIsSupported(browser) {
-		const supportedBrowsers = ['chrome', 'firefox'];
+		const supportedBrowsers = ['chrome', 'firefox', 'safari'];
 
 		if (!browser) {
 			grunt.fail.fatal(
@@ -459,7 +506,7 @@ module.exports = function(grunt) {
 	 */
 	function loadWebStoreConfig() {
 		if (isTravisCi) {
-			let webStoreConfig =  {
+			let webStoreConfig = {
 				clientId: process.env.CHROME_CLIENT_ID,
 				clientSecret: process.env.CHROME_CLIENT_SECRET,
 				refreshToken: process.env.CHROME_REFRESH_TOKEN
@@ -480,7 +527,7 @@ module.exports = function(grunt) {
 	 */
 	function loadGithubConfig() {
 		if (isTravisCi) {
-			let githubConfig =  {
+			let githubConfig = {
 				token: process.env.GITHUB_TOKEN,
 			};
 
@@ -499,7 +546,7 @@ module.exports = function(grunt) {
 	 */
 	function loadAmoConfig() {
 		if (isTravisCi) {
-			let amoConfig =  {
+			let amoConfig = {
 				issuer: process.env.AMO_ISSUER,
 				secret: process.env.AMO_SECRET,
 			};
