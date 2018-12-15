@@ -4,12 +4,12 @@
  * Requirejs configuration for all background scripts
  */
 require.config({
-	baseUrl: '/core/background',
+	baseUrl: 'core/background/',
 	paths: {
-		vendor: '/vendor',
-		jquery: '/vendor/jquery.min',
-		bootstrap: '/vendor/bootstrap/bootstrap.min',
-		connectors: '/core/connectors'
+		vendor: '../../vendor',
+		jquery: '../../vendor/jquery.min',
+		bootstrap: 'vendor/bootstrap/bootstrap.min',
+		connectors: '../connectors'
 	},
 	shim: {
 		bootstrap: {
